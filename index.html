@@ -48,13 +48,13 @@ td { vertical-align: top; padding: 0; }
 <table class="bb"><tr>
   <td class="box br" style="width: 50%">
     <div class="lbl">ILM · TALLINN</div>
-    <div><span class="big" id="temp">–</span></div>
+    <div><span id="wicon" style="display: inline-block; vertical-align: middle; margin-right: 6px"></span><span class="big" id="temp" style="vertical-align: middle">–</span></div>
     <div class="sub" id="wdesc" style="margin: 4px 0 6px">Laen…</div>
     <div class="mono sub" id="wdays" style="border-top: 1px solid #000; padding-top: 3px"></div>
   </td>
   <td class="box">
-    <div class="lbl">TURG <span class="sample">näidis</span></div>
-    <div><span class="sub">Fear &amp; Greed</span> <b style="font-size: 26px" id="fg">–</b></div>
+    <div class="lbl">TURG <span class="sample" id="mktupd">laen…</span></div>
+    <div><span class="sub">Fear &amp; Greed</span> <b style="font-size: 26px" id="fg">–</b> <span class="sub" id="fgr"></span></div>
     <div class="fgbar"><span style="background: #d00000"></span><span style="background: #ff7a00"></span><span style="background: #ffc400"></span><span style="background: #7cc000"></span><span style="background: #008a2e"></span></div>
     <div style="position: relative; height: 8px"><div id="fgmark" style="position: absolute; top: 0; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid #000; margin-left: -6px"></div></div>
     <div class="mono sub" id="mkt"></div>
@@ -110,7 +110,6 @@ var CONFIG = {
     { day: 0, time: "17:30", who: "J", title: "Trenn" },
     { day: 1, time: "kogu p", who: "R", title: "Lähetus" }
   ],
-  market: { fg: 54, rows: [["S&P 500", 0.4], ["VIX", "16,2"], ["US10Y", "4,1%"], ["Kuld", -0.2]], alarm: "" },
   fuel: [["95", "1,72 €"], ["Diisel", "1,64 €"]],
   sport: [["Võistkond A – B", "2:1", true], ["Võistkond C – D", "K 20:00", false]]
 };
@@ -194,25 +193,33 @@ $("upd").innerHTML = "Uuendatud " + pad(now.getHours()) + ":" + pad(now.getMinut
   $("bday").innerHTML = html;
 })();
 
-/* ---------- Turg (näidis) ---------- */
-(function () {
-  var m = CONFIG.market;
-  $("fg").innerHTML = m.fg;
-  $("fgmark").style.left = m.fg + "%";
-  var html = "";
-  for (var i = 0; i < m.rows.length; i++) {
-    var v = m.rows[i][1], txt = v, col = "#000";
-    if (typeof v === "number") {
-      txt = (v >= 0 ? "▲ " : "▼ ") + fmt(Math.abs(v), 1) + "%";
-      col = v >= 0 ? "#008a2e" : "#d00000";
+/* ---------- Turg: data/turg.json (GitHub Actions) ---------- */
+getJSON("data/turg.json?t=" + now.getTime(),
+  function (m) {
+    $("mktupd").innerHTML = m.updated || "";
+    if (m.fg) {
+      $("fg").innerHTML = m.fg.score;
+      $("fgr").innerHTML = m.fg.rating;
+      $("fgmark").style.left = m.fg.score + "%";
+    } else { $("fgmark").style.display = "none"; }
+    var html = "";
+    for (var i = 0; i < m.rows.length; i++) {
+      var r = m.rows[i], ch = r.change, col = ch >= 0 ? "#008a2e" : "#d00000";
+      html += '<div class="kv"><span class="v">' + r.value +
+        ' <span style="color: ' + col + '; display: inline-block; width: 62px; text-align: right">' +
+        (ch >= 0 ? "▲" : "▼") + fmt(Math.abs(ch), 1) + '%</span></span>' + r.name + '</div>';
     }
-    html += '<div class="kv"><span class="v" style="color: ' + col + '">' + txt + '</span>' + m.rows[i][0] + '</div>';
+    $("mkt").innerHTML = html;
+    var a = $("alarm"), lv = m.alarm ? m.alarm.level : "ok";
+    a.style.background = lv === "buy" ? "#d00000" : lv === "warn" ? "#ff7a00" : "#008a2e";
+    a.innerHTML = "Häirekell: " + (m.alarm ? m.alarm.text : "–");
+  },
+  function () {
+    $("mktupd").innerHTML = "andmed puuduvad";
+    $("fgmark").style.display = "none";
+    $("alarm").style.display = "none";
   }
-  $("mkt").innerHTML = html;
-  var a = $("alarm");
-  if (m.alarm) { a.style.background = "#d00000"; a.innerHTML = "Häirekell: " + m.alarm; }
-  else { a.style.background = "#008a2e"; a.innerHTML = "Häirekell: kõik vaikne"; }
-})();
+);
 
 /* ---------- Kütus ja sport (näidis) ---------- */
 (function () {
@@ -233,21 +240,57 @@ var WMO = { 0: "Selge", 1: "Peamiselt selge", 2: "Vahelduv pilvisus", 3: "Pilves
   71: "Nõrk lumi", 73: "Lumesadu", 75: "Tugev lumi", 80: "Hoovihm", 81: "Hoovihm", 82: "Tugev hoovihm",
   85: "Lumehoog", 86: "Tugev lumehoog", 95: "Äike", 96: "Äike rahega", 99: "Äike rahega" };
 
+/* Ilmaikoonid: lihtsad SVG-d */
+function sunSVG(cx, cy, r) {
+  var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffc400" stroke="#e08a00" stroke-width="2.5"/>';
+  for (var a = 0; a < 8; a++) {
+    var t = a * Math.PI / 4, r1 = r + 4, r2 = r + 9;
+    s += '<line x1="' + (cx + r1 * Math.cos(t)).toFixed(1) + '" y1="' + (cy + r1 * Math.sin(t)).toFixed(1) +
+      '" x2="' + (cx + r2 * Math.cos(t)).toFixed(1) + '" y2="' + (cy + r2 * Math.sin(t)).toFixed(1) +
+      '" stroke="#e08a00" stroke-width="3" stroke-linecap="round"/>';
+  }
+  return s;
+}
+function moonSVG() { return '<path d="M30 10a16 16 0 1 0 18 22 13 13 0 0 1-18-22z" fill="#ffe680" stroke="#000" stroke-width="2.5"/>'; }
+function cloudSVG(fill) {
+  return '<path d="M16 50h30a10 10 0 0 0 0-20 13 13 0 0 0-25-3 9 9 0 0 0-5 23z" fill="' + fill + '" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>';
+}
+function weatherIcon(code, size, isDay) {
+  var g = "";
+  if (code === 0) g = isDay ? sunSVG(32, 32, 12) : moonSVG();
+  else if (code <= 2) g = (isDay ? sunSVG(22, 22, 9) : moonSVG()) + cloudSVG("#fff");
+  else if (code === 3) g = cloudSVG("#d8d8d8");
+  else if (code === 45 || code === 48) g = cloudSVG("#eee") + '<path d="M10 56h44M14 61h36" stroke="#777" stroke-width="3" stroke-linecap="round"/>';
+  else if ((code >= 71 && code <= 77) || code === 85 || code === 86)
+    g = cloudSVG("#fff") + '<circle cx="22" cy="58" r="3" fill="#0050c8"/><circle cx="32" cy="61" r="3" fill="#0050c8"/><circle cx="42" cy="58" r="3" fill="#0050c8"/>';
+  else if (code >= 95)
+    g = cloudSVG("#bbb") + '<path d="M34 50l-7 9h7l-5 9" fill="none" stroke="#e08a00" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  else
+    g = cloudSVG("#d8d8d8") + '<path d="M22 54l-3 7M32 54l-3 7M42 54l-3 7" stroke="#0050c8" stroke-width="3" stroke-linecap="round"/>';
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 64 64">' + g + '</svg>';
+}
+function windSVG(size) {
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" style="vertical-align: middle" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round">' +
+    '<path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3M3 12h7"/></svg>';
+}
+
 getJSON("https://api.open-meteo.com/v1/forecast?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon +
-  "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m" +
-  "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
+  "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day" +
+  "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
   "&timezone=Europe%2FTallinn&wind_speed_unit=ms&forecast_days=4",
   function (w) {
     var c = w.current;
     $("temp").innerHTML = Math.round(c.temperature_2m) + "°";
-    $("wdesc").innerHTML = (WMO[c.weather_code] || "") + "<br>Tuul " + Math.round(c.wind_speed_10m) +
+    $("wicon").innerHTML = weatherIcon(c.weather_code, 46, c.is_day === 1);
+    $("wdesc").innerHTML = (WMO[c.weather_code] || "") + "<br>" + windSVG(16) + " " + Math.round(c.wind_speed_10m) +
       " m/s · Tunne " + Math.round(c.apparent_temperature) + "°";
     var d = w.daily, h = "";
     for (var i = 1; i < d.time.length; i++) {
       var dd = new Date(d.time[i] + "T12:00:00");
       h += '<div class="kv"><span class="v" style="color: #0050c8">' +
         (d.precipitation_probability_max[i] == null ? "" : d.precipitation_probability_max[i] + "%") + '</span>' +
-        '<span style="display: inline-block; width: 30px">' + DSHORT[dd.getDay()] + '</span>' +
+        '<span style="display: inline-block; width: 22px">' + DSHORT[dd.getDay()] + '</span>' +
+        '<span style="display: inline-block; width: 24px; height: 14px; line-height: 0; vertical-align: top">' + weatherIcon(d.weather_code[i], 16, true) + '</span>' +
         Math.round(d.temperature_2m_max[i]) + '°/' + Math.round(d.temperature_2m_min[i]) + '°</div>';
     }
     $("wdays").innerHTML = h;
