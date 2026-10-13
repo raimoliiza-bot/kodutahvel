@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="900">
+<title>Kodutahvel</title>
+<style>
+/* Kobo brauser on vana WebKit: paigutus tabelitega, ilma grid/flex-gap'ita */
+html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+body { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 15px; }
+table { border-collapse: collapse; width: 100%; }
+td { vertical-align: top; padding: 0; }
+.mono { font-family: "Courier New", monospace; }
+.lbl { font-size: 12px; font-weight: bold; letter-spacing: 1.5px; margin-bottom: 6px; }
+.box { padding: 10px 14px; }
+.bb { border-bottom: 2px solid #000; }
+.br { border-right: 2px solid #000; }
+.row { width: 100%; }
+.row td { padding: 2px 0; }
+.r { text-align: right; }
+.big { font-size: 44px; font-weight: bold; line-height: 1; }
+.sub { font-size: 13px; }
+.dot { display: inline-block; width: 11px; height: 11px; vertical-align: middle; margin-right: 4px; }
+.bar { display: inline-block; vertical-align: bottom; margin-right: 2px; }
+.alarm { color: #fff; padding: 4px 8px; font-size: 12px; font-weight: bold; margin-top: 6px; }
+.sample { font-size: 10px; color: #777; }
+#hdr { padding: 12px 14px 8px; border-bottom: 3px solid #000; }
+#date { font-size: 28px; font-weight: bold; line-height: 1.05; }
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <table><tr>
+    <td><div id="date">…</div><div class="sub" id="week"></div></td>
+    <td class="r mono sub" style="vertical-align: bottom">
+      <div id="sun">↑ – ↓ –</div>
+      <div id="upd"></div>
+    </td>
+  </tr></table>
+</div>
+
+<table class="bb"><tr>
+  <td class="box br" style="width: 50%">
+    <div class="lbl">ILM · TALLINN</div>
+    <div><span class="big" id="temp">–</span></div>
+    <div class="sub" id="wdesc" style="margin: 4px 0 6px">Laen…</div>
+    <table class="row mono sub" id="wdays" style="border-top: 1px solid #000"></table>
+  </td>
+  <td class="box">
+    <div class="lbl">TURG <span class="sample">näidis</span></div>
+    <div><span class="sub">Fear &amp; Greed</span> <b style="font-size: 26px" id="fg">–</b></div>
+    <table style="margin: 4px 0 2px"><tr>
+      <td style="height: 7px; background: #d00000"></td><td style="background: #ff7a00"></td><td style="background: #ffc400"></td><td style="background: #7cc000"></td><td style="background: #008a2e"></td>
+    </tr></table>
+    <div style="position: relative; height: 8px"><div id="fgmark" style="position: absolute; top: 0; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid #000; margin-left: -6px"></div></div>
+    <table class="row mono sub" id="mkt"></table>
+    <div class="alarm" id="alarm"></div>
+  </td>
+</tr></table>
+
+<div class="box bb">
+  <table><tr>
+    <td><div class="lbl">KALENDER <span class="sample">näidis</span></div></td>
+    <td class="r sub"><span class="dot" style="background: #0050c8"></span>Raimo &nbsp; <span class="dot" style="background: #e0005a"></span>Jana</td>
+  </tr></table>
+  <div id="cal"></div>
+  <div style="border: 2px solid #e0005a; padding: 6px 10px; margin-top: 8px">
+    <div class="lbl" style="color: #e0005a; margin-bottom: 3px">SÜNNIPÄEVAD <span class="sample">näidis</span></div>
+    <table class="row" id="bday"></table>
+  </div>
+</div>
+
+<div class="box bb">
+  <table><tr>
+    <td><div class="lbl">ELEKTER <span class="sample">börs, km-ta</span></div></td>
+    <td class="r sub">Praegu <b class="mono" id="elnow">–</b> s/kWh</td>
+  </tr></table>
+  <div id="elbars" style="height: 42px; white-space: nowrap"></div>
+  <table class="mono" style="font-size: 11px"><tr><td style="width: 25%">00</td><td style="width: 25%">06</td><td style="width: 25%">12</td><td style="width: 25%">18<span style="float: right">24</span></td></tr></table>
+</div>
+
+<table><tr>
+  <td class="box br" style="width: 50%">
+    <div class="lbl">KÜTUS <span class="sample">näidis</span></div>
+    <table class="row mono sub" id="fuel"></table>
+  </td>
+  <td class="box">
+    <div class="lbl">SPORT <span class="sample">näidis</span></div>
+    <table class="row sub" id="sport"></table>
+  </td>
+</tr></table>
+
+<script>
+/* ================== SINU ANDMED (muuda siin) ================== */
+var CONFIG = {
+  lat: 59.437, lon: 24.7536,
+  // Sünnipäevad: kuu (1-12), päev. NB! Need on näidiskuupäevad - pane õiged asemele
+  birthdays: [
+    { name: "Jana", m: 11, d: 2 },
+    { name: "Ema",  m: 10, d: 24 },
+    { name: "Raimo", m: 3, d: 15 }
+  ],
+  // Kalender: hiljem tuleb Google Kalendrist. who: "R" või "J"; day: 0 = täna, 1 = homme
+  events: [
+    { day: 0, time: "09:00", who: "R", title: "Koosolek" },
+    { day: 0, time: "17:30", who: "J", title: "Trenn" },
+    { day: 1, time: "kogu p", who: "R", title: "Lähetus" }
+  ],
+  market: { fg: 54, rows: [["S&P 500", 0.4], ["VIX", "16,2"], ["US10Y", "4,1%"], ["Kuld", -0.2]], alarm: "" },
+  fuel: [["95", "1,72 €"], ["Diisel", "1,64 €"]],
+  sport: [["Võistkond A – B", "2:1", true], ["Võistkond C – D", "K 20:00", false]]
+};
+/* ============================================================== */
+
+var DAYS = ["Pühapäev","Esmaspäev","Teisipäev","Kolmapäev","Neljapäev","Reede","Laupäev"];
+var DSHORT = ["P","E","T","K","N","R","L"];
+var MONTHS = ["jaanuar","veebruar","märts","aprill","mai","juuni","juuli","august","september","oktoober","november","detsember"];
+var MSHORT = ["jaan","veebr","märts","apr","mai","juuni","juuli","aug","sept","okt","nov","dets"];
+
+function $(id) { return document.getElementById(id); }
+function pad(n) { return n < 10 ? "0" + n : "" + n; }
+function fmt(n, d) { return n.toFixed(d).replace(".", ","); }
+
+function weekNo(dt) {
+  var d = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  var day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  var y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - y0) / 86400000 + 1) / 7);
+}
+
+function getJSON(url, ok, fail) {
+  try {
+    var x = new XMLHttpRequest();
+    x.open("GET", url, true);
+    x.timeout = 15000;
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      if (x.status === 200) { try { ok(JSON.parse(x.responseText)); } catch (e) { fail(); } }
+      else fail();
+    };
+    x.send();
+  } catch (e) { fail(); }
+}
+
+/* ---------- Päis ---------- */
+var now = new Date();
+$("date").innerHTML = DAYS[now.getDay()] + ", " + now.getDate() + ". " + MONTHS[now.getMonth()];
+$("week").innerHTML = "Nädal " + weekNo(now);
+$("upd").innerHTML = "Uuendatud " + pad(now.getHours()) + ":" + pad(now.getMinutes());
+
+/* ---------- Kalender ---------- */
+(function () {
+  var html = "", labels = ["Täna", "Homme"];
+  for (var day = 0; day < 2; day++) {
+    html += '<div style="font-size: 14px; font-weight: bold; margin: 6px 0 3px">' + labels[day] + '</div>';
+    var any = false;
+    for (var i = 0; i < CONFIG.events.length; i++) {
+      var e = CONFIG.events[i];
+      if (e.day !== day) continue;
+      any = true;
+      var c = e.who === "J" ? "#e0005a" : "#0050c8";
+      html += '<table style="margin-bottom: 3px"><tr>' +
+        '<td class="mono" style="width: 58px; font-size: 13px; vertical-align: middle">' + e.time + '</td>' +
+        '<td style="width: 12px; vertical-align: middle"><div style="width: 5px; height: 20px; background: ' + c + '"></div></td>' +
+        '<td style="vertical-align: middle">' + e.title + '</td></tr></table>';
+    }
+    if (!any) html += '<div class="sub" style="color: #555">—</div>';
+  }
+  $("cal").innerHTML = html;
+})();
+
+/* ---------- Sünnipäevad ---------- */
+(function () {
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var list = [];
+  for (var i = 0; i < CONFIG.birthdays.length; i++) {
+    var b = CONFIG.birthdays[i];
+    var next = new Date(today.getFullYear(), b.m - 1, b.d);
+    if (next < today) next = new Date(today.getFullYear() + 1, b.m - 1, b.d);
+    list.push({ name: b.name, date: next, days: Math.round((next - today) / 86400000) });
+  }
+  list.sort(function (a, b) { return a.days - b.days; });
+  var html = "";
+  for (var j = 0; j < Math.min(2, list.length); j++) {
+    var it = list[j];
+    var left = it.days === 0 ? "<b>TÄNA!</b>" : it.days === 1 ? "homme" : it.days + " p";
+    html += '<tr><td><b>' + it.name + '</b> · ' + it.date.getDate() + '. ' + MSHORT[it.date.getMonth()] + '</td><td class="r mono">' + left + '</td></tr>';
+  }
+  $("bday").innerHTML = html;
+})();
+
+/* ---------- Turg (näidis) ---------- */
+(function () {
+  var m = CONFIG.market;
+  $("fg").innerHTML = m.fg;
+  $("fgmark").style.left = m.fg + "%";
+  var html = "";
+  for (var i = 0; i < m.rows.length; i++) {
+    var v = m.rows[i][1], txt = v, col = "#000";
+    if (typeof v === "number") {
+      txt = (v >= 0 ? "▲ " : "▼ ") + fmt(Math.abs(v), 1) + "%";
+      col = v >= 0 ? "#008a2e" : "#d00000";
+    }
+    html += '<tr><td>' + m.rows[i][0] + '</td><td class="r" style="color: ' + col + '">' + txt + '</td></tr>';
+  }
+  $("mkt").innerHTML = html;
+  var a = $("alarm");
+  if (m.alarm) { a.style.background = "#d00000"; a.innerHTML = "Häirekell: " + m.alarm; }
+  else { a.style.background = "#008a2e"; a.innerHTML = "Häirekell: kõik vaikne"; }
+})();
+
+/* ---------- Kütus ja sport (näidis) ---------- */
+(function () {
+  var h = "";
+  for (var i = 0; i < CONFIG.fuel.length; i++) h += '<tr><td>' + CONFIG.fuel[i][0] + '</td><td class="r">' + CONFIG.fuel[i][1] + '</td></tr>';
+  $("fuel").innerHTML = h;
+  h = "";
+  for (var j = 0; j < CONFIG.sport.length; j++) {
+    var s = CONFIG.sport[j];
+    h += '<tr><td>' + s[0] + '</td><td class="r mono">' + (s[2] ? "<b>" + s[1] + "</b>" : s[1]) + '</td></tr>';
+  }
+  $("sport").innerHTML = h;
+})();
+
+/* ---------- Ilm: Open-Meteo (tasuta, võtmeta) ---------- */
+var WMO = { 0: "Selge", 1: "Peamiselt selge", 2: "Vahelduv pilvisus", 3: "Pilves", 45: "Udu", 48: "Udu",
+  51: "Nõrk uduvihm", 53: "Uduvihm", 55: "Tugev uduvihm", 61: "Nõrk vihm", 63: "Vihm", 65: "Tugev vihm",
+  71: "Nõrk lumi", 73: "Lumesadu", 75: "Tugev lumi", 80: "Hoovihm", 81: "Hoovihm", 82: "Tugev hoovihm",
+  85: "Lumehoog", 86: "Tugev lumehoog", 95: "Äike", 96: "Äike rahega", 99: "Äike rahega" };
+
+getJSON("https://api.open-meteo.com/v1/forecast?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon +
+  "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m" +
+  "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
+  "&timezone=Europe%2FTallinn&wind_speed_unit=ms&forecast_days=4",
+  function (w) {
+    var c = w.current;
+    $("temp").innerHTML = Math.round(c.temperature_2m) + "°";
+    $("wdesc").innerHTML = (WMO[c.weather_code] || "") + "<br>Tuul " + Math.round(c.wind_speed_10m) +
+      " m/s · Tunne " + Math.round(c.apparent_temperature) + "°";
+    var d = w.daily, h = "";
+    for (var i = 1; i < d.time.length; i++) {
+      var dd = new Date(d.time[i] + "T12:00:00");
+      h += '<tr><td>' + DSHORT[dd.getDay()] + '</td><td>' + Math.round(d.temperature_2m_max[i]) + '°/' +
+        Math.round(d.temperature_2m_min[i]) + '°</td><td class="r" style="color: #0050c8">' +
+        (d.precipitation_probability_max[i] == null ? "" : d.precipitation_probability_max[i] + "%") + '</td></tr>';
+    }
+    $("wdays").innerHTML = h;
+    $("sun").innerHTML = "↑ " + d.sunrise[0].substr(11, 5) + " &nbsp;↓ " + d.sunset[0].substr(11, 5);
+  },
+  function () { $("wdesc").innerHTML = "Ilma ei saanud laadida"; }
+);
+
+/* ---------- Elekter: Elering Nord Pool hind ---------- */
+(function () {
+  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var end = new Date(start.getTime() + 86400000 - 1);
+  getJSON("https://dashboard.elering.ee/api/nps/price?start=" + encodeURIComponent(start.toISOString()) +
+    "&end=" + encodeURIComponent(end.toISOString()),
+    function (r) {
+      var rows = (r && r.data && r.data.ee) || [];
+      if (!rows.length) { $("elnow").innerHTML = "–"; return; }
+      // Andmed võivad olla 15-min sammuga: keskmistame tunni kaupa
+      var sum = [], cnt = [];
+      for (var i = 0; i < 24; i++) { sum[i] = 0; cnt[i] = 0; }
+      for (var j = 0; j < rows.length; j++) {
+        var hr = new Date(rows[j].timestamp * 1000).getHours();
+        sum[hr] += rows[j].price; cnt[hr]++;
+      }
+      var cents = [], max = 1;
+      for (var k = 0; k < 24; k++) {
+        cents[k] = cnt[k] ? sum[k] / cnt[k] / 10 : null; // €/MWh -> s/kWh
+        if (cents[k] != null && cents[k] > max) max = cents[k];
+      }
+      var nowH = now.getHours(), html = "";
+      for (var m = 0; m < 24; m++) {
+        var v = cents[m] == null ? 0 : cents[m];
+        var hgt = Math.max(2, Math.round(Math.max(0, v) / max * 40));
+        var col = v < 8 ? "#008a2e" : v < 15 ? "#ffc400" : "#d00000";
+        var ring = m === nowH ? "outline: 2px solid #000;" : "";
+        html += '<div class="bar" style="width: 3.4%; height: ' + hgt + 'px; background: ' + col + ';' + ring + '"></div>';
+      }
+      $("elbars").innerHTML = html;
+      $("elnow").innerHTML = cents[nowH] == null ? "–" : fmt(cents[nowH], 1);
+    },
+    function () { $("elbars").innerHTML = '<span class="sub">Elektrihinda ei saanud laadida</span>'; }
+  );
+})();
+</script>
+</body>
+</html>
