@@ -22,9 +22,13 @@ td { vertical-align: top; padding: 0; }
 .big { font-size: 44px; font-weight: bold; line-height: 1; }
 .sub { font-size: 13px; }
 .dot { display: inline-block; width: 11px; height: 11px; vertical-align: middle; margin-right: 4px; }
-.bar { display: inline-block; vertical-align: bottom; margin-right: 2px; }
+.bar { display: inline-block; vertical-align: bottom; margin-right: 0.56%; }
 .alarm { color: #fff; padding: 4px 8px; font-size: 12px; font-weight: bold; margin-top: 6px; }
-.sample { font-size: 10px; color: #777; }
+.sample { font-size: 10px; color: #777; margin-left: 6px; letter-spacing: 0; font-weight: normal; }
+.kv { overflow: hidden; padding: 2px 0; }
+.kv .v { float: right; }
+.fgbar { font-size: 0; white-space: nowrap; margin: 4px 0 2px; }
+.fgbar span { display: inline-block; width: 20%; height: 7px; }
 #hdr { padding: 12px 14px 8px; border-bottom: 3px solid #000; }
 #date { font-size: 28px; font-weight: bold; line-height: 1.05; }
 </style>
@@ -46,16 +50,14 @@ td { vertical-align: top; padding: 0; }
     <div class="lbl">ILM · TALLINN</div>
     <div><span class="big" id="temp">–</span></div>
     <div class="sub" id="wdesc" style="margin: 4px 0 6px">Laen…</div>
-    <table class="row mono sub" id="wdays" style="border-top: 1px solid #000"></table>
+    <div class="mono sub" id="wdays" style="border-top: 1px solid #000; padding-top: 3px"></div>
   </td>
   <td class="box">
     <div class="lbl">TURG <span class="sample">näidis</span></div>
     <div><span class="sub">Fear &amp; Greed</span> <b style="font-size: 26px" id="fg">–</b></div>
-    <table style="margin: 4px 0 2px"><tr>
-      <td style="height: 7px; background: #d00000"></td><td style="background: #ff7a00"></td><td style="background: #ffc400"></td><td style="background: #7cc000"></td><td style="background: #008a2e"></td>
-    </tr></table>
+    <div class="fgbar"><span style="background: #d00000"></span><span style="background: #ff7a00"></span><span style="background: #ffc400"></span><span style="background: #7cc000"></span><span style="background: #008a2e"></span></div>
     <div style="position: relative; height: 8px"><div id="fgmark" style="position: absolute; top: 0; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid #000; margin-left: -6px"></div></div>
-    <table class="row mono sub" id="mkt"></table>
+    <div class="mono sub" id="mkt"></div>
     <div class="alarm" id="alarm"></div>
   </td>
 </tr></table>
@@ -68,13 +70,13 @@ td { vertical-align: top; padding: 0; }
   <div id="cal"></div>
   <div style="border: 2px solid #e0005a; padding: 6px 10px; margin-top: 8px">
     <div class="lbl" style="color: #e0005a; margin-bottom: 3px">SÜNNIPÄEVAD <span class="sample">näidis</span></div>
-    <table class="row" id="bday"></table>
+    <div id="bday"></div>
   </div>
 </div>
 
 <div class="box bb">
   <table><tr>
-    <td><div class="lbl">ELEKTER <span class="sample">börs, km-ta</span></div></td>
+    <td><div class="lbl">ELEKTER <span class="sample">börs, km-ta</span><span class="sample" id="eldate"></span></div></td>
     <td class="r sub">Praegu <b class="mono" id="elnow">–</b> s/kWh</td>
   </tr></table>
   <div id="elbars" style="height: 42px; white-space: nowrap"></div>
@@ -84,11 +86,11 @@ td { vertical-align: top; padding: 0; }
 <table><tr>
   <td class="box br" style="width: 50%">
     <div class="lbl">KÜTUS <span class="sample">näidis</span></div>
-    <table class="row mono sub" id="fuel"></table>
+    <div class="mono sub" id="fuel"></div>
   </td>
   <td class="box">
     <div class="lbl">SPORT <span class="sample">näidis</span></div>
-    <table class="row sub" id="sport"></table>
+    <div class="sub" id="sport"></div>
   </td>
 </tr></table>
 
@@ -187,7 +189,7 @@ $("upd").innerHTML = "Uuendatud " + pad(now.getHours()) + ":" + pad(now.getMinut
   for (var j = 0; j < Math.min(2, list.length); j++) {
     var it = list[j];
     var left = it.days === 0 ? "<b>TÄNA!</b>" : it.days === 1 ? "homme" : it.days + " p";
-    html += '<tr><td><b>' + it.name + '</b> · ' + it.date.getDate() + '. ' + MSHORT[it.date.getMonth()] + '</td><td class="r mono">' + left + '</td></tr>';
+    html += '<div class="kv"><span class="v mono">' + left + '</span><b>' + it.name + '</b> · ' + it.date.getDate() + '. ' + MSHORT[it.date.getMonth()] + '</div>';
   }
   $("bday").innerHTML = html;
 })();
@@ -204,7 +206,7 @@ $("upd").innerHTML = "Uuendatud " + pad(now.getHours()) + ":" + pad(now.getMinut
       txt = (v >= 0 ? "▲ " : "▼ ") + fmt(Math.abs(v), 1) + "%";
       col = v >= 0 ? "#008a2e" : "#d00000";
     }
-    html += '<tr><td>' + m.rows[i][0] + '</td><td class="r" style="color: ' + col + '">' + txt + '</td></tr>';
+    html += '<div class="kv"><span class="v" style="color: ' + col + '">' + txt + '</span>' + m.rows[i][0] + '</div>';
   }
   $("mkt").innerHTML = html;
   var a = $("alarm");
@@ -215,12 +217,12 @@ $("upd").innerHTML = "Uuendatud " + pad(now.getHours()) + ":" + pad(now.getMinut
 /* ---------- Kütus ja sport (näidis) ---------- */
 (function () {
   var h = "";
-  for (var i = 0; i < CONFIG.fuel.length; i++) h += '<tr><td>' + CONFIG.fuel[i][0] + '</td><td class="r">' + CONFIG.fuel[i][1] + '</td></tr>';
+  for (var i = 0; i < CONFIG.fuel.length; i++) h += '<div class="kv"><span class="v">' + CONFIG.fuel[i][1] + '</span>' + CONFIG.fuel[i][0] + '</div>';
   $("fuel").innerHTML = h;
   h = "";
   for (var j = 0; j < CONFIG.sport.length; j++) {
     var s = CONFIG.sport[j];
-    h += '<tr><td>' + s[0] + '</td><td class="r mono">' + (s[2] ? "<b>" + s[1] + "</b>" : s[1]) + '</td></tr>';
+    h += '<div class="kv"><span class="v mono">' + (s[2] ? "<b>" + s[1] + "</b>" : s[1]) + '</span>' + s[0] + '</div>';
   }
   $("sport").innerHTML = h;
 })();
@@ -243,9 +245,10 @@ getJSON("https://api.open-meteo.com/v1/forecast?latitude=" + CONFIG.lat + "&long
     var d = w.daily, h = "";
     for (var i = 1; i < d.time.length; i++) {
       var dd = new Date(d.time[i] + "T12:00:00");
-      h += '<tr><td>' + DSHORT[dd.getDay()] + '</td><td>' + Math.round(d.temperature_2m_max[i]) + '°/' +
-        Math.round(d.temperature_2m_min[i]) + '°</td><td class="r" style="color: #0050c8">' +
-        (d.precipitation_probability_max[i] == null ? "" : d.precipitation_probability_max[i] + "%") + '</td></tr>';
+      h += '<div class="kv"><span class="v" style="color: #0050c8">' +
+        (d.precipitation_probability_max[i] == null ? "" : d.precipitation_probability_max[i] + "%") + '</span>' +
+        '<span style="display: inline-block; width: 30px">' + DSHORT[dd.getDay()] + '</span>' +
+        Math.round(d.temperature_2m_max[i]) + '°/' + Math.round(d.temperature_2m_min[i]) + '°</div>';
     }
     $("wdays").innerHTML = h;
     $("sun").innerHTML = "↑ " + d.sunrise[0].substr(11, 5) + " &nbsp;↓ " + d.sunset[0].substr(11, 5);
@@ -253,34 +256,24 @@ getJSON("https://api.open-meteo.com/v1/forecast?latitude=" + CONFIG.lat + "&long
   function () { $("wdesc").innerHTML = "Ilma ei saanud laadida"; }
 );
 
-/* ---------- Elekter: Elering Nord Pool hind ---------- */
+/* ---------- Elekter: data/elekter.json (GitHub Actions toob Eleringist) ---------- */
 (function () {
-  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var end = new Date(start.getTime() + 86400000 - 1);
-  getJSON("https://dashboard.elering.ee/api/nps/price?start=" + encodeURIComponent(start.toISOString()) +
-    "&end=" + encodeURIComponent(end.toISOString()),
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  getJSON("data/elekter.json?t=" + now.getTime(),
     function (r) {
-      var rows = (r && r.data && r.data.ee) || [];
-      if (!rows.length) { $("elnow").innerHTML = "–"; return; }
-      // Andmed võivad olla 15-min sammuga: keskmistame tunni kaupa
-      var sum = [], cnt = [];
-      for (var i = 0; i < 24; i++) { sum[i] = 0; cnt[i] = 0; }
-      for (var j = 0; j < rows.length; j++) {
-        var hr = new Date(rows[j].timestamp * 1000).getHours();
-        sum[hr] += rows[j].price; cnt[hr]++;
-      }
-      var cents = [], max = 1;
-      for (var k = 0; k < 24; k++) {
-        cents[k] = cnt[k] ? sum[k] / cnt[k] / 10 : null; // €/MWh -> s/kWh
-        if (cents[k] != null && cents[k] > max) max = cents[k];
-      }
+      var todayStr = ymd(now), cents = null;
+      if (r.date === todayStr) cents = r.today;
+      else if (r.next_date === todayStr) cents = r.tomorrow;
+      if (!cents || !cents.length) { $("elbars").innerHTML = '<span class="sub">Tänase päeva hinnad puuduvad</span>'; return; }
+      var max = 1;
+      for (var k = 0; k < cents.length; k++) if (cents[k] != null && cents[k] > max) max = cents[k];
       var nowH = now.getHours(), html = "";
       for (var m = 0; m < 24; m++) {
         var v = cents[m] == null ? 0 : cents[m];
         var hgt = Math.max(2, Math.round(Math.max(0, v) / max * 40));
         var col = v < 8 ? "#008a2e" : v < 15 ? "#ffc400" : "#d00000";
         var ring = m === nowH ? "outline: 2px solid #000;" : "";
-        html += '<div class="bar" style="width: 3.4%; height: ' + hgt + 'px; background: ' + col + ';' + ring + '"></div>';
+        html += '<div class="bar" style="width: 3.6%; height: ' + hgt + 'px; background: ' + col + ';' + ring + '"></div>';
       }
       $("elbars").innerHTML = html;
       $("elnow").innerHTML = cents[nowH] == null ? "–" : fmt(cents[nowH], 1);
