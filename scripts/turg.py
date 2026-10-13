@@ -20,7 +20,11 @@ RATINGS = {"extreme fear": "Äärmine hirm", "fear": "Hirm", "neutral": "Neutraa
 
 
 def get(url):
-    req = urllib.request.Request(url, headers=UA)
+    headers = dict(UA)
+    if "cnn.io" in url:  # CNN laseb läbi ainult "brauseri" päistega
+        headers.update({"Referer": "https://edition.cnn.com/", "Origin": "https://edition.cnn.com",
+                        "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9"})
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 
